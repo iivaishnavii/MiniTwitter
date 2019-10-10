@@ -29,12 +29,12 @@ public class TweetServiceImpl implements TweetService {
 	//@Override
     public void follow(String follower, String followee) throws IOException {
 
-       	//System.out.printf("User %s followed user %s \n", follower, followee);
+       	System.out.printf("User %s followed user %s \n", follower, followee);
     }
 
 	//@Override
 	public void block(String user, String follower) throws IOException {
-       	//System.out.printf("User %s blocked user %s \n", user, follower);
+       	System.out.printf("User %s blocked user %s \n", user, follower);
 	}
 
 	//@Override

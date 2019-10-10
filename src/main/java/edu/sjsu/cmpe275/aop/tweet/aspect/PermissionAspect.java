@@ -24,12 +24,14 @@ public class PermissionAspect {
         Object[] signatureArgs = joinPoint.getArgs();
         Integer messageId = (Integer)signatureArgs[1];
         String user = signatureArgs[0].toString();
-        System.out.println("User "+user+"retweets "+messageId);
+        System.out.println("User "+user+"tries to retweets "+messageId);
 
         String userWhoTweeted = stats.getUserForMessage(user,messageId);
         System.out.println("User who tweeted message "+messageId+" is "+userWhoTweeted);
         if(stats.checkIfUserIsBlocked(user,userWhoTweeted))
-            throw new AccessControlException("the user is blocked");
+            throw new AccessControlException("");
+        else
+            System.out.println("We are continuing");
 	}
 	
 }

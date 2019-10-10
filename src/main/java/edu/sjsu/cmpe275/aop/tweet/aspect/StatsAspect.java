@@ -45,8 +45,9 @@ public class StatsAspect {
 		Object[] signatureArgs = joinPoint.getArgs();
 		String user = signatureArgs[0].toString();
 		Integer messageId = (Integer)signatureArgs[1];
+		stats.createRetweetMessageMap(messageId,retweetMessageId);
 		System.out.println("User "+user+" retweets the messageid"+ messageId );
-		stats.getMessageFollowerCount(messageId,user);
+		stats.getMessageFollowerCountForRetweet(messageId,user);
 
 
 	}
@@ -70,6 +71,7 @@ public class StatsAspect {
 	{
 		Object[] signatureArgs = joinpoint.getArgs();
 		String user = signatureArgs[0].toString();
+		System.out.println("");
 		String blockedUser = signatureArgs[1].toString();
 		stats.createBlockedUserList(user,blockedUser);
 	}

@@ -13,12 +13,13 @@ public class TweetStatsServiceImpl implements TweetStatsService {
 
 	//public User muUser;
     public int lengthOfLongestTweet = 0;
-	String mostFollowedUser="" ;
-	String mostProductiveUser = "";
-	String mostPopularMessage = "";
+	String mostFollowedUser=null ;
+	String mostProductiveUser = null;
+	String mostPopularMessage = null;
 
 
 	Map<String, Integer> userFolloweMap = new TreeMap<String,Integer>();
+	Map<String, ArrayList<String>> userFollowerListMap = new TreeMap<String,ArrayList<String>>();
 	Map<String, Integer> userMessageCountMap = new TreeMap<String,Integer>();
 	Map<Integer,Integer> messageFollowerCountMap =  new HashMap<Integer, Integer>();
 	Map<Integer,String> messageMap = new HashMap<Integer, String>();
@@ -30,9 +31,9 @@ public class TweetStatsServiceImpl implements TweetStatsService {
 		// TODO Auto-generated method stub
 
 		lengthOfLongestTweet =0 ;
-		mostFollowedUser = "";
-		mostProductiveUser = "";
-		mostPopularMessage = "";
+		mostFollowedUser = null;
+		mostProductiveUser = null;
+		mostPopularMessage = null;
 
 
 		userFolloweMap.clear();
@@ -46,18 +47,18 @@ public class TweetStatsServiceImpl implements TweetStatsService {
 
 	//@Override
 	public int getLengthOfLongestTweet() {
-		// TODO Auto-generated method stub
 
 		return lengthOfLongestTweet;
 	}
 
 	//@Override
 	public String getMostFollowedUser() {
-		// TODO Auto-generated method stub
+
 		int max = 0;
 
 		if(userFolloweMap.isEmpty())
 			return null;
+
 		for(Map.Entry<String,Integer> entry: userFolloweMap.entrySet())
 		{
 			if(entry.getValue()>max)
@@ -78,19 +79,30 @@ public class TweetStatsServiceImpl implements TweetStatsService {
 		//equal number of followers case handle
 		for(Map.Entry<Integer,Integer> entry: messageFollowerCountMap.entrySet())
 		{
-			if(maxCount ==  entry.getValue()) //If follower count is same,return message in lexicographical order
+//			if(mostPopularMessage == null)
+//				mostPopularMessage = messageMap.get(entry.getKey());
+			 if(maxCount ==  entry.getValue() && mostPopularMessage != null ) //If follower count is same,return message in lexicographical order
 			{
 				int value = messageMap.get(entry.getKey()).compareTo(mostPopularMessage);
 				if(value < 0) //string 1 is lexicographically first
 					mostPopularMessage= messageMap.get(entry.getKey());
 			}
-			else if(maxCount < entry.getValue())
+			else if(maxCount < entry.getValue() && mostPopularMessage != null)
 			{
 				mostPopularMessage =  messageMap.get(entry.getKey());
 				maxCount = entry.getValue();
 			}
+			else if(mostPopularMessage == null && entry.getValue()!=0)
+			 {
+			 	mostPopularMessage = messageMap.get(entry.getKey());
+			 	maxCount = entry.getValue();
+			 }
+
 
 		}
+//		System.out.println("Max count of Popular Message"+maxCount);
+//		if (mostPopularMessage == "")
+//			return null;
 		return mostPopularMessage;
 	}
 	
@@ -124,10 +136,16 @@ public class TweetStatsServiceImpl implements TweetStatsService {
 	{
 		if(!follower.equals(followee)) {
 			if (!userFolloweMap.containsKey(followee)) {
+				ArrayList<String> followerList = new ArrayList<String>();
 				userFolloweMap.put(followee, 1);
+				followerList.add(follower);
+				userFollowerListMap.put(followee,followerList);
 			} else {
 				//System.out.println("THe current value is"+userFolloweMap.get(followee));
 				userFolloweMap.put(followee, userFolloweMap.get(followee) + 1);
+				ArrayList<String> followerList = userFollowerListMap.get(followee);
+				followerList.add(follower);
+				userFollowerListMap.put(followee,followerList);
 			}
 		}
 
@@ -162,10 +180,78 @@ public class TweetStatsServiceImpl implements TweetStatsService {
 		//The message does not exist and the user has followers
 		else if (!messageFollowerCountMap.containsKey(messageId) && userFolloweMap.containsKey(user))
 		{
-			messageFollowerCountMap.put(messageId,userFolloweMap.get(user));
+
+
+
+			if(blockedUserList.containsKey(user))
+			{
+				List<String> numberofBlockedUsers =  blockedUserList.get(user);
+				messageFollowerCountMap.put(messageId,userFolloweMap.get(user)-numberofBlockedUsers.size());
+			}
+			else
+				messageFollowerCountMap.put(messageId,userFolloweMap.get(user));
 		}
 
 
+	}
+	public void getMessageFollowerCountForRetweet(Integer messageId,String user)
+	{
+		String originalTweeter = messageUserMap.get(messageId); //Get the user who tweeted the original message
+		System.out.println("In getMessageFollowerCountForRetweet originalTweeter for messageId "+originalTweeter + " "+messageId);
+		System.out.println("Message Map"+messageMap);
+		boolean isPresent = false;
+		int commonCount =0;
+		if(userFollowerListMap.get(user)!=null) //Check if the retweeter has followers
+		{
+			ArrayList<String> followers = userFollowerListMap.get(user);
+			System.out.println("followers of retweeter "+user);
+			for(String follower : followers)  //Check if the orignal tweeter is in the followers
+			{
+				System.out.printf(follower);
+				if(follower == originalTweeter)
+					isPresent = true;
+			}
+			System.out.println("Is the origianl tweeter a follower of retweeter "+isPresent);
+
+			if(userFollowerListMap.get(originalTweeter)!=null) //CHeck if they have common followers
+			{
+				ArrayList<String> orgFollowers = userFollowerListMap.get(originalTweeter);
+				for(String follower : followers)
+				{
+					for(String f:orgFollowers)
+					{
+						System.out.println("Comparinf "+f+" with "+follower);
+						if(f == follower)
+							commonCount++;
+					}
+				}
+			}
+			System.out.println("Common followers between the two"+commonCount);
+		}
+
+		if(messageFollowerCountMap.containsKey(messageId)&& userFolloweMap.containsKey(user))   //The user has followers and the message is tweeted
+		{
+			//System.out.println("How many messages for messageid "+messageId+" "+ messageFollowerCountMap.get(messageId));
+			//System.out.println("User follower for this user is "+userFolloweMap.get(user));
+
+			if(blockedUserList.get(user) == null)
+			{
+				if(isPresent)
+					messageFollowerCountMap.put(messageId,messageFollowerCountMap.get(messageId)+userFolloweMap.get(user)-1-commonCount);
+				else
+					messageFollowerCountMap.put(messageId,messageFollowerCountMap.get(messageId)+userFolloweMap.get(user)-commonCount);
+			}
+			else
+			{
+				if(isPresent)
+					messageFollowerCountMap.put(messageId,messageFollowerCountMap.get(messageId)+userFolloweMap.get(user)-1-commonCount-blockedUserList.get(user).size());
+				else
+					messageFollowerCountMap.put(messageId,messageFollowerCountMap.get(messageId)+userFolloweMap.get(user)-commonCount-blockedUserList.get(user).size());
+			}
+
+			//System.out.println("New message follower count "+messageId+" "+messageFollowerCountMap.get(messageId));
+		}
+		blockedUserList.get("Alex");
 	}
 
 	public void createMessageMap(String message,int messageId)
@@ -178,6 +264,13 @@ public class TweetStatsServiceImpl implements TweetStatsService {
 		messageUserMap.put(messageId,user);
 	}
 
+	public void createRetweetMessageMap(int messageId,int retweetMessageId){
+		String message = messageMap.get(messageId);
+		messageMap.put(retweetMessageId,message);
+	}
+
+
+
 	public String getUserForMessage(String user,int messageId)
 	{
 		return messageUserMap.get(messageId);
@@ -185,6 +278,7 @@ public class TweetStatsServiceImpl implements TweetStatsService {
 
 	public boolean checkIfUserIsBlocked(String newUser,String userWhoTweeted)
 	{
+		System.out.println(blockedUserList);
 		if(!blockedUserList.containsKey(userWhoTweeted))
 			return false;
 		else
@@ -195,6 +289,7 @@ public class TweetStatsServiceImpl implements TweetStatsService {
 				if(str.equals(newUser))
 					return true;
 			}
+			System.out.println("did not find");
 			return false;
 		}
 
